@@ -7,7 +7,9 @@ var pass = function( val ) {
 };
 
 var fn = function( val ) {
-	return function(){ return val; };
+	return function() {
+		return val;
+	};
 };
 
 /*
@@ -50,7 +52,7 @@ var testWidth = function( val ) {
 
 	equal( jQuery(window).width(), document.documentElement.clientWidth, "Window width is equal to width reported by window/document." );
 
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 };
 
 test("width()", function() {
@@ -66,7 +68,7 @@ test("width(Function(args))", function() {
 
 	var $div = jQuery("#nothiddendiv");
 	$div.width( 30 ).width(function(i, width) {
-		equal( width, 30, "Make sure previous value is corrrect." );
+		equal( width, 30, "Make sure previous value is correct." );
 		return width + 1;
 	});
 
@@ -101,7 +103,7 @@ var testHeight = function( val ) {
 
 	equal( jQuery(window).height(), document.documentElement.clientHeight, "Window width is equal to width reported by window/document." );
 
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 };
 
 test("height()", function() {
@@ -117,7 +119,7 @@ test("height(Function(args))", function() {
 
 	var $div = jQuery("#nothiddendiv");
 	$div.height( 30 ).height(function(i, height) {
-		equal( height, 30, "Make sure previous value is corrrect." );
+		equal( height, 30, "Make sure previous value is correct." );
 		return height + 1;
 	});
 
@@ -156,7 +158,7 @@ test("innerWidth()", function() {
 	equal( div.innerWidth(), 0, "Make sure that disconnected nodes are handled." );
 
 	div.remove();
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 });
 
 test("innerHeight()", function() {
@@ -191,7 +193,7 @@ test("innerHeight()", function() {
 	equal( div.innerHeight(), 0, "Make sure that disconnected nodes are handled." );
 
 	div.remove();
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 });
 
 test("outerWidth()", function() {
@@ -229,7 +231,7 @@ test("outerWidth()", function() {
 	equal( div.outerWidth(), 0, "Make sure that disconnected nodes are handled." );
 
 	div.remove();
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 });
 
 test("child of a hidden elem (or unconnected node) has accurate inner/outer/Width()/Height()  see #9441 #9300", function() {
@@ -269,7 +271,7 @@ test("child of a hidden elem (or unconnected node) has accurate inner/outer/Widt
 	$divNormal.remove();
 });
 
-test("getting dimensions shouldnt modify runtimeStyle see #9233", function() {
+test("getting dimensions shouldn't modify runtimeStyle see #9233", function() {
 	expect( 1 );
 
 	var $div = jQuery( "<div>" ).appendTo( "#qunit-fixture" ),
@@ -286,20 +288,21 @@ test("getting dimensions shouldnt modify runtimeStyle see #9233", function() {
 	if ( runtimeStyle ) {
 		equal( div.runtimeStyle.left, "11em", "getting dimensions modifies runtimeStyle, see #9233" );
 	} else {
-		ok( true, "this browser doesnt support runtimeStyle, see #9233" );
+		ok( true, "this browser doesn't support runtimeStyle, see #9233" );
 	}
 
 	$div.remove();
 });
 
-test( "getting dimensions of zero width/height table elements shouldn't alter dimensions", function() {
-	expect( 1 );
-
-	var table = jQuery("<table><tbody><tr><td></td><td>a</td></tr><tr><td></td><td>a</td></tr></tbody></table>").appendTo("#qunit-fixture"),
-		elem = table.find("tr:eq(0) td:eq(0)");
+test( "table dimensions", 2, function() {
+	var table = jQuery("<table><colgroup><col/><col/></colgroup><tbody><tr><td></td><td>a</td></tr><tr><td></td><td>a</td></tr></tbody></table>").appendTo("#qunit-fixture"),
+		tdElem = table.find("td").first(),
+		colElem = table.find("col").first().width( 300 );
 
 	table.find("td").css({ "margin": 0, "padding": 0 });
-	equal( elem.width(), elem.width(), "width() doesn't alter dimension values" );
+
+	equal( tdElem.width(), tdElem.width(), "width() doesn't alter dimension values of empty cells, see #11293" );
+	equal( colElem.width(), 300, "col elements have width(), see #12243" );
 });
 
 test("box-sizing:border-box child of a hidden elem (or unconnected node) has accurate inner/outer/Width()/Height()  see #10413", function() {
@@ -374,7 +377,7 @@ test("outerHeight()", function() {
 	equal( div.outerHeight(), 0, "Make sure that disconnected nodes are handled." );
 
 	div.remove();
-	jQuery.removeData($div[0], "olddisplay", true);
+	QUnit.expectJqData( $div[0], "olddisplay" );
 });
 
 test("passing undefined is a setter #5571", function() {
@@ -385,10 +388,27 @@ test("passing undefined is a setter #5571", function() {
 	equal(jQuery("#nothiddendiv").width(30).width(undefined).width(), 30, ".width(undefined) is chainable (#5571)");
 });
 
+test( "getters on non elements should return null", function() {
+	expect( 8 );
+
+	var nonElem = jQuery("notAnElement");
+
+	strictEqual( nonElem.width(), null, ".width() is not null (#12283)" );
+	strictEqual( nonElem.innerWidth(), null, ".innerWidth() is not null (#12283)" );
+	strictEqual( nonElem.outerWidth(), null, ".outerWidth() is not null (#12283)" );
+	strictEqual( nonElem.outerWidth( true ), null, ".outerWidth(true) is not null (#12283)" );
+
+	strictEqual( nonElem.height(), null, ".height() is not null (#12283)" );
+	strictEqual( nonElem.innerHeight(), null, ".innerHeight() is not null (#12283)" );
+	strictEqual( nonElem.outerHeight(), null, ".outerHeight() is not null (#12283)" );
+	strictEqual( nonElem.outerHeight( true ), null, ".outerHeight(true) is not null (#12283)" );
+});
+
 test("setters with and without box-sizing:border-box", function(){
 	expect(20);
 
-	var el_bb = jQuery("<div style='width:114px;height:114px;margin:5px;padding:3px;border:4px solid white;-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box;'>test</div>").appendTo("#qunit-fixture"),
+	// Support: Firefox, Android 2.3 (Prefixed box-sizing versions).
+	var el_bb = jQuery("<div style='width:114px;height:114px;margin:5px;padding:3px;border:4px solid white;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;'>test</div>").appendTo("#qunit-fixture"),
 		el = jQuery("<div style='width:100px;height:100px;margin:5px;padding:3px;border:4px solid white;'>test</div>").appendTo("#qunit-fixture"),
 		expected = 100;
 
@@ -426,7 +446,9 @@ testIframe( "dimensions/documentSmall", "window vs. small document", function( j
 		equal( jQuery( document ).height(), jQuery( window ).height(), "document height matches window height" );
 		equal( jQuery( document ).width(), jQuery( window ).width(), "document width matches window width" );
 	} else {
-		expect( 0 );
+		// all tests should have at least one assertion
+		expect( 1 );
+		ok( true, "skipping test (conditions not satisfied)" );
 	}
 });
 

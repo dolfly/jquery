@@ -1,6 +1,6 @@
 module( "queue", { teardown: moduleTeardown });
 
-test( "queue() with other types", 12, function() {
+test( "queue() with other types", 14, function() {
 	var counter = 0;
 
 	stop();
@@ -45,6 +45,12 @@ test( "queue() with other types", 12, function() {
 
 	equal( counter, 4, "Testing previous call to dequeue" );
 	equal( $div.queue("foo").length, 0, "Testing queue length" );
+
+	$div.dequeue("foo");
+
+	equal( counter, 4, "Testing previous call to dequeue" );
+	equal( $div.queue("foo").length, 0, "Testing queue length" );
+
 });
 
 test("queue(name) passes in the next item in the queue as a parameter", function() {
@@ -113,7 +119,6 @@ test("callbacks keep their place in the queue", function() {
 
 	div.promise("fx").done(function() {
 		equal(counter, 4, "Deferreds resolved");
-		jQuery.removeData( div[0], "olddisplay", true );
 		start();
 	});
 });
@@ -179,7 +184,7 @@ test("clearQueue() clears the fx queue", function() {
 });
 
 asyncTest( "fn.promise() - called when fx queue is empty", 3, function() {
-	var foo = jQuery( "#foo" ).clone().andSelf(),
+	var foo = jQuery( "#foo" ).clone().addBack(),
 		promised = false;
 
 	foo.queue( function( next ) {
@@ -206,8 +211,8 @@ asyncTest( "fn.promise( \"queue\" ) - called whenever last queue function is deq
 	}).queue( "queue", function( next ) {
 		strictEqual( test++, 2, "step two" );
 		setTimeout( function() {
-			strictEqual( test++, 4, "step four" );
 			next();
+			strictEqual( test++, 4, "step four" );
 			start();
 		}, 10 );
 	}).promise( "queue" ).done( function() {
@@ -215,6 +220,27 @@ asyncTest( "fn.promise( \"queue\" ) - called whenever last queue function is deq
 	});
 
 	foo.dequeue( "queue" );
+});
+
+asyncTest( "fn.promise( \"queue\" ) - waits for animation to complete before resolving", 2, function() {
+	var foo = jQuery( "#foo" ),
+		test = 1;
+
+	foo.animate({
+		top: 100
+	}, {
+		duration: 1,
+		queue: "queue",
+		complete: function() {
+			strictEqual( test++, 1, "step one" );
+		}
+	}).dequeue( "queue" );
+
+	foo.promise( "queue" ).done( function() {
+		strictEqual( test++, 2, "step two" );
+		start();
+	});
+
 });
 
 test( ".promise(obj)", function() {
@@ -233,17 +259,16 @@ if ( jQuery.fn.stop ) {
 		expect( 3 );
 		stop();
 
-		var foo = jQuery({}), run = 0;
-
-		foo
+		var done = {};
+		jQuery({})
 			.queue( "alternate", function( next ) {
-				run++;
+				done.alt1 = true;
 				ok( true, "This first function was dequeued" );
 				next();
 			})
 			.delay( 1000, "alternate" )
 			.queue( "alternate", function() {
-				run++;
+				done.alt2 = true;
 				ok( true, "The function was dequeued immediately, the delay was stopped" );
 			})
 			.dequeue( "alternate" )
@@ -252,18 +277,20 @@ if ( jQuery.fn.stop ) {
 			.stop( "alternate", false, false )
 
 			// this test
-			.delay( 1000 )
+			.delay( 1 )
 			.queue(function() {
-				run++;
+				done.default1 = true;
 				ok( false, "This queue should never run" );
 			})
 
 			// stop( clearQueue ) should clear the queue
 			.stop( true, false );
 
-		equal( run, 2, "Queue ran the proper functions" );
+		deepEqual( done, { alt1: true, alt2: true }, "Queue ran the proper functions" );
 
-		setTimeout( start, 2000 );
+		setTimeout(function() {
+			start();
+		}, 1500 );
 	});
 
 	asyncTest( "queue stop hooks", 2, function() {
